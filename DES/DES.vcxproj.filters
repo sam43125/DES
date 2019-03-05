@@ -22,6 +22,5 @@
   <ItemGroup>
     <Text Include="DES-Key-Ciphertext.txt" />
     <Text Include="DES-Key-Plaintext.txt" />
-    <Text Include="out.txt" />
   </ItemGroup>
 </Project>
