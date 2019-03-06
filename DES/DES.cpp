@@ -1,3 +1,4 @@
+// Compile with -std=c++17 (gcc7) or MSVC
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
@@ -12,20 +13,17 @@ class DES {
 public:
     DES(const bitset<64>& key) {
         // Key scheduling
-        string keyText = key.to_string(), l, r;
+        bitset<28> left, right;
         for (size_t i = 0; i < 28; i++) {
-            l += keyText[PC1L[i]-1];
-            r += keyText[PC1R[i]-1];
+            left[27 - i] = key[64 - PC1L[i]];
+            right[27 - i] = key[64 - PC1R[i]];
         }
-        bitset<28> left(l), right(r);
         for (size_t i = 0; i < 16; i++) {
             LShift(left, LSCount[i]);
             LShift(right, LSCount[i]);
             bitset<56> all(left.to_string() + right.to_string());
-            string allText = all.to_string(), subkeyText;
             for (size_t j = 0; j < 48; j++)
-                subkeyText += allText[PC2[j] - 1];
-            subkeys[i] = bitset<48>(subkeyText);
+                subkeys[i][47 - j] = all[56 - PC2[j]];
         }
     }
 
@@ -33,43 +31,41 @@ public:
 
     bitset<64> Encrypt(const bitset<64>& plain) {
         // Initial permutation
-        string plainText = plain.to_string(), l, r;
+        bitset<32> left, right;
         for (size_t i = 0; i < 32; i++) {
-            l += plainText[IP[i] - 1];
-            r += plainText[IP[i + 32] - 1];
+            left[31 - i] = plain[64 - IP[i]];
+            right[31 - i] = plain[64 - IP[i + 32]];
         }
-        bitset<32> left(l), right(r);
         // Process
         for (size_t i = 0; i < 16; i++) {
             left ^= fnF(right, subkeys[i]);
             swap(left, right);
         }
         // Final permutation
-        string allText = right.to_string() + left.to_string(), cipherText;
+        bitset<64> cipher;
+        bitset<64> all(right.to_string() + left.to_string());
         for (size_t i = 0; i < 64; i++)
-            cipherText += allText[FP[i] - 1];
-        bitset<64> cipher(cipherText);
+            cipher[63 - i] = all[64 - FP[i]];
         return cipher;
     }
 
     bitset<64> Decrypt(const bitset<64>& cipher) {
         // Initial permutation
-        string cipherText = cipher.to_string(), l, r;
+        bitset<32> left, right;
         for (size_t i = 0; i < 32; i++) {
-            l += cipherText[IP[i] - 1];
-            r += cipherText[IP[i + 32] - 1];
+            left[31 - i] = cipher[64 - IP[i]];
+            right[31 - i] = cipher[64 - IP[i + 32]];
         }
-        bitset<32> left(l), right(r);
         // Process
         for (size_t i = 0; i < 16; i++) {
             left ^= fnF(right, subkeys[15 - i]);
             swap(left, right);
         }
         // Final permutation
-        string allText = right.to_string() + left.to_string(), plainText;
+        bitset<64> plain;
+        bitset<64> all(right.to_string() + left.to_string());
         for (size_t i = 0; i < 64; i++)
-            plainText += allText[FP[i] - 1];
-        bitset<64> plain(plainText);
+            plain[63 - i] = all[64 - FP[i]];
         return plain;
     }
 
@@ -88,10 +84,9 @@ private:
 
     bitset<48> fnE(const bitset<32>& R) {
         // Expansion function
-        string Text = R.to_string(), temp;
+        bitset<48> result;
         for (size_t i = 0; i < 48; i++)
-            temp += Text[E[i] - 1];
-        bitset<48> result(temp);
+            result[47 - i] = R[32 - E[i]];
         return result;
     }
 
@@ -106,10 +101,9 @@ private:
 
     bitset<32> fnP(const bitset<32>& R) {
         // Permutation
-        string Text = R.to_string(), temp;
+        bitset<32> result;
         for (size_t i = 0; i < 32; i++)
-            temp += Text[P[i] - 1];
-        bitset<32> result(temp);
+            result[31 - i] = R[32 - P[i]];
         return result;
     }
 
@@ -120,6 +114,7 @@ private:
     }
 
     bitset<48> subkeys[16];
+
     static constexpr table IP[] = { 58, 50, 42, 34, 26, 18, 10, 2,
                                     60, 52, 44, 36, 28, 20, 12, 4,
                                     62, 54, 46, 38, 30, 22, 14, 6,
@@ -139,6 +134,7 @@ private:
                                     34, 2, 42, 10, 50, 18, 58, 26,
                                     33, 1, 41,  9, 49, 17, 57, 25,
                                   };
+
     static constexpr table E[] = {  32,  1,  2,  3,  4,  5,
                                      4,  5,  6,  7,  8,  9,
                                      8,  9, 10, 11, 12, 13,
@@ -148,6 +144,7 @@ private:
                                     24, 25, 26, 27, 28, 29,
                                     28, 29, 30, 31, 32,  1
                                  };
+
     static constexpr table P[] = {  16,  7, 20, 21,
                                     29, 12, 28, 17,
                                      1, 15, 23, 26,
@@ -157,16 +154,19 @@ private:
                                     19, 13, 30,  6,
                                     22, 11,  4, 25
                                  };
+
     static constexpr table PC1L[] = { 57, 49, 41, 33, 25, 17,  9, 
                                        1, 58, 50, 42, 34, 26, 18,
                                       10,  2, 59, 51, 43, 35, 27,
                                       19, 11,  3, 60, 52, 44, 36,
                                     };
+
     static constexpr table PC1R[] = { 63, 55, 47, 39, 31, 23, 15,
                                        7, 62, 54, 46, 38, 30, 22,
                                       14,  6, 61, 53, 45, 37, 29,
                                       21, 13,  5, 28, 20, 12,  4
                                     };
+
     static constexpr table PC2[] = { 14, 17, 11, 24,  1,  5,
                                       3, 28, 15,  6, 21, 10,
                                      23, 19, 12,  4, 26,  8,
@@ -176,6 +176,7 @@ private:
                                      44, 49, 39, 56, 34, 53,
                                      46, 42, 50, 36, 29, 32
                                    };
+
     static constexpr table S_box[8][64] = { {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,
                                             0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8,
                                             4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0,
@@ -216,6 +217,7 @@ private:
                                             7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8,
                                             2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11} 
                                           };
+
     static constexpr table LSCount[] = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1 };
 
 };
@@ -273,4 +275,5 @@ int main() {
     fout.close();
     return 0;
 }
+
 #endif

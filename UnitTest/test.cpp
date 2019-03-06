@@ -1,11 +1,13 @@
 #include "catch.hpp"
 #define NO_MAIN
 #include "../DES/DES.cpp"
+#include <random>
+#include <functional>
 
 TEST_CASE("Simple test") {
-    DES obj(0x5B5A57676A56676E);
-    REQUIRE(obj.Encrypt(0x675A69675E5A6B5A).to_ullong() == 0x974AFFBF86022D1F);
-    REQUIRE(obj.Decrypt(0x974AFFBF86022D1F).to_ullong() == 0x675A69675E5A6B5A);
+    DES obj(0x5B5A57676A56676EULL);
+    REQUIRE(obj.Encrypt(0x675A69675E5A6B5AULL).to_ullong() == 0x974AFFBF86022D1FULL);
+    REQUIRE(obj.Decrypt(0x974AFFBF86022D1FULL).to_ullong() == 0x675A69675E5A6B5AULL);
 }
 
 TEST_CASE("Test Encrypt and Decrypt", "[Encyrpt][Decrypt]") {
@@ -40,4 +42,17 @@ TEST_CASE("Test Encrypt and Decrypt", "[Encyrpt][Decrypt]") {
 
     fin.close();
     answer.close();
+}
+
+TEST_CASE("Random tests", "[Random]") {
+    random_device rd;
+    mt19937_64 eng(rd());
+    uniform_int_distribution<unsigned long long> distr;
+    auto rand = bind(distr, eng);
+    for (int n = 0; n < 10; n++) {
+        DES obj(rand());
+        auto data = rand();
+        REQUIRE(data == obj.Decrypt(obj.Encrypt(data)).to_ullong());
+        REQUIRE(data == obj.Encrypt(obj.Decrypt(data)).to_ullong());
+    }
 }
