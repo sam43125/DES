@@ -107,10 +107,8 @@ private:
         return result;
     }
 
-    void LShift(bitset<28>& key, int count) {
-        bitset<28> MSBs = key >> (28 - count);
-        key <<= count;
-        key |= MSBs;
+    inline void LShift(bitset<28>& key, int count) {
+        key = (key << count) | (key >> (28 - count));
     }
 
     bitset<48> subkeys[16];
