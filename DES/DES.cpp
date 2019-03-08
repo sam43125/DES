@@ -29,7 +29,7 @@ public:
 
     ~DES() = default;
 
-    bitset<64> Encrypt(const bitset<64>& plain) {
+    bitset<64> Encrypt(const bitset<64>& plain) const {
         // Initial permutation
         bitset<32> left, right;
         for (size_t i = 0; i < 32; i++) {
@@ -49,7 +49,7 @@ public:
         return cipher;
     }
 
-    bitset<64> Decrypt(const bitset<64>& cipher) {
+    bitset<64> Decrypt(const bitset<64>& cipher) const {
         // Initial permutation
         bitset<32> left, right;
         for (size_t i = 0; i < 32; i++) {
@@ -71,7 +71,7 @@ public:
 
 private:
 
-    bitset<32> fnF(const bitset<32>& R, const bitset<48>& subkey) {
+    bitset<32> fnF(const bitset<32>& R, const bitset<48>& subkey) const {
         // Feistel (F) function
         bitset<48> S_in = fnE(R) ^ subkey;
         string temp;
@@ -82,7 +82,7 @@ private:
         return result;
     }
 
-    bitset<48> fnE(const bitset<32>& R) {
+    bitset<48> fnE(const bitset<32>& R) const {
         // Expansion function
         bitset<48> result;
         for (size_t i = 0; i < 48; i++)
@@ -90,7 +90,7 @@ private:
         return result;
     }
 
-    bitset<4> fnS(const bitset<6>& Si, size_t i) {
+    bitset<4> fnS(const bitset<6>& Si, size_t i) const {
         // Substitution (S-Box)
         string bits = Si.to_string();
         int j = stoi(string{ bits[0], bits[5] }, nullptr, 2);
@@ -99,7 +99,7 @@ private:
         return result;
     }
 
-    bitset<32> fnP(const bitset<32>& R) {
+    bitset<32> fnP(const bitset<32>& R) const {
         // Permutation
         bitset<32> result;
         for (size_t i = 0; i < 32; i++)
@@ -107,7 +107,7 @@ private:
         return result;
     }
 
-    inline void LShift(bitset<28>& key, int count) {
+    inline void LShift(bitset<28>& key, size_t count) {
         key = (key << count) | (key >> (28 - count));
     }
 
@@ -216,7 +216,7 @@ private:
                                             2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11} 
                                           };
 
-    static constexpr table LSCount[] = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1 };
+    static constexpr size_t LSCount[] = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1 };
 
 };
 
