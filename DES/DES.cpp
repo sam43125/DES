@@ -268,7 +268,7 @@ int main() {
     decrypt(fout);
 
     end = clock();
-    cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+    cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC / 20;
     fout << cpu_time_used * 1000 << " ms";
     fout.close();
     return 0;
