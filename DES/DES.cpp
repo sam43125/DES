@@ -1,17 +1,33 @@
 // Compile with -std=c++17 (gcc7) or MSVC
-#include <algorithm>
+#include <utility> // std::swap
 #include <iomanip>
 #include <sstream>
 #include <fstream>
 #include <string>
 #include <bitset>
-#include <ctime>
+#include <chrono> 
 using namespace std;
+using namespace std::chrono;
 using table = unsigned char;
+
+/**
+class to evaluate time cost
+*/
+template <typename Timer = nanoseconds>
+struct measure {
+    template <typename F, typename... Args>
+    static typename Timer::rep execution(F func, Args &&... args) {
+        auto start = high_resolution_clock::now();
+        func(forward<Args>(args)...);
+        auto duration = duration_cast<Timer>(high_resolution_clock::now() - start);
+        return duration.count();
+    }
+};
+
 
 class DES {
 public:
-    DES(const bitset<64>& key) {
+    explicit DES(const bitset<64>& key) {
         // Key scheduling
         bitset<28> left, right;
         for (size_t i = 0; i < 28; i++) {
@@ -29,7 +45,7 @@ public:
 
     ~DES() = default;
 
-    bitset<64> Encrypt(const bitset<64>& plain) const {
+    const bitset<64> Encrypt(const bitset<64>& plain) const {
         // Initial permutation
         bitset<32> left, right;
         for (size_t i = 0; i < 32; i++) {
@@ -49,7 +65,7 @@ public:
         return cipher;
     }
 
-    bitset<64> Decrypt(const bitset<64>& cipher) const {
+    const bitset<64> Decrypt(const bitset<64>& cipher) const {
         // Initial permutation
         bitset<32> left, right;
         for (size_t i = 0; i < 32; i++) {
@@ -71,7 +87,7 @@ public:
 
 private:
 
-    bitset<32> fnF(const bitset<32>& R, const bitset<48>& subkey) const {
+    const bitset<32> fnF(const bitset<32>& R, const bitset<48>& subkey) const {
         // Feistel (F) function
         bitset<48> S_in = fnE(R) ^ subkey;
         string temp;
@@ -82,7 +98,7 @@ private:
         return result;
     }
 
-    bitset<48> fnE(const bitset<32>& R) const {
+    const bitset<48> fnE(const bitset<32>& R) const {
         // Expansion function
         bitset<48> result;
         for (size_t i = 0; i < 48; i++)
@@ -90,7 +106,7 @@ private:
         return result;
     }
 
-    bitset<4> fnS(const bitset<6>& Si, size_t i) const {
+    const bitset<4> fnS(const bitset<6>& Si, size_t i) const {
         // Substitution (S-Box)
         string bits = Si.to_string();
         int j = stoi(string{ bits[0], bits[5] }, nullptr, 2);
@@ -99,7 +115,7 @@ private:
         return result;
     }
 
-    bitset<32> fnP(const bitset<32>& R) const {
+    const bitset<32> fnP(const bitset<32>& R) const {
         // Permutation
         bitset<32> result;
         for (size_t i = 0; i < 32; i++)
@@ -230,7 +246,7 @@ void encrypt(ofstream& fout) {
         istringstream a(keyText), b(plainText);
         a >> hex >> key;
         b >> hex >> plain;
-        auto cipher = DES(bitset<64>(key)).Encrypt(bitset<64>(plain));
+        auto cipher = DES(key).Encrypt(plain);
         fout << setfill('0') << setw(16) << hex << cipher.to_ullong() << endl;
     }
 
@@ -247,7 +263,7 @@ void decrypt(ofstream& fout) {
         istringstream a(keyText), b(cipherText);
         a >> hex >> key;
         b >> hex >> cipher;
-        auto plain = DES(bitset<64>(key)).Decrypt(bitset<64>(cipher));
+        auto plain = DES(key).Decrypt(cipher);
         fout << setfill('0') << setw(16) << hex << plain.to_ullong() << endl;
     }
 
@@ -258,18 +274,12 @@ void decrypt(ofstream& fout) {
 
 int main() {
 
-    clock_t start, end;
-    double cpu_time_used;
-    start = clock();
-
     ofstream fout("out.txt");
 
-    encrypt(fout);
-    decrypt(fout);
+    auto cpu_time_used = measure<>::execution(encrypt, fout)
+                       + measure<>::execution(decrypt, fout);
 
-    end = clock();
-    cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC / 20;
-    fout << cpu_time_used * 1000 << " ms";
+    fout << dec << cpu_time_used / 1e6 / 20.0 << " ms";
     fout.close();
     return 0;
 }

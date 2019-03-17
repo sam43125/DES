@@ -23,7 +23,7 @@ TEST_CASE("Test Encrypt and Decrypt", "[Encyrpt][Decrypt]") {
         a >> hex >> key;
         b >> hex >> plain;
         c >> hex >> ans;
-        auto cipher = DES(bitset<64>(key)).Encrypt(bitset<64>(plain));
+        auto cipher = DES(key).Encrypt(plain);
         REQUIRE(cipher.to_ullong() == ans);
     }
     fin.close();
@@ -36,7 +36,7 @@ TEST_CASE("Test Encrypt and Decrypt", "[Encyrpt][Decrypt]") {
         a >> hex >> key;
         b >> hex >> cipher;
         c >> hex >> ans;
-        auto plain = DES(bitset<64>(key)).Decrypt(bitset<64>(cipher));
+        auto plain = DES(key).Decrypt(cipher);
         REQUIRE(plain.to_ullong() == ans);
     }
 
