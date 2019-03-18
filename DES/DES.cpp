@@ -1,10 +1,12 @@
 // Compile with -std=c++17 (gcc7) or MSVC
 #include <utility> // std::swap
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <fstream>
 #include <string>
 #include <bitset>
+#include <vector>
 #include <chrono> 
 using namespace std;
 using namespace std::chrono;
@@ -24,10 +26,15 @@ struct measure {
     }
 };
 
-
-class DES {
+class DES { 
 public:
-    explicit DES(const bitset<64>& key) {
+    explicit DES(const bitset<64>& key, bool isModified = false) {
+        if (isModified) {
+            LSCount = { 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 2, 2, 2 };
+            swap(S_box[0], S_box[5]);
+        }
+        else
+            LSCount = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1 };
         // Key scheduling
         bitset<28> left, right;
         for (size_t i = 0; i < 28; i++) {
@@ -169,7 +176,7 @@ private:
                                     22, 11,  4, 25
                                  };
 
-    static constexpr table PC1L[] = { 57, 49, 41, 33, 25, 17,  9, 
+    static constexpr table PC1L[] = { 57, 49, 41, 33, 25, 17,  9,
                                        1, 58, 50, 42, 34, 26, 18,
                                       10,  2, 59, 51, 43, 35, 27,
                                       19, 11,  3, 60, 52, 44, 36,
@@ -191,7 +198,7 @@ private:
                                      46, 42, 50, 36, 29, 32
                                    };
 
-    static constexpr table S_box[8][64] = { {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,
+    vector<vector<table> > S_box = {       {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,
                                             0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8,
                                             4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0,
                                             15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13},
@@ -220,7 +227,7 @@ private:
                                             10, 15, 4, 2, 7, 12, 9, 5, 6, 1, 13, 14, 0, 11, 3, 8,
                                             9, 14, 15, 5, 2, 8, 12, 3, 7, 0, 4, 10, 1, 13, 11, 6,
                                             4, 3, 2, 12, 9, 5, 15, 10, 11, 14, 1, 7, 6, 0, 8, 13},
-
+                                            
                                             {4, 11, 2, 14, 15, 0, 8, 13, 3, 12, 9, 7, 5, 10, 6, 1,
                                             13, 0, 11, 7, 4, 9, 1, 10, 14, 3, 5, 12, 2, 15, 8, 6,
                                             1, 4, 11, 13, 12, 3, 7, 14, 10, 15, 6, 8, 0, 5, 9, 2,
@@ -229,10 +236,10 @@ private:
                                             {13, 2, 8, 4, 6, 15, 11, 1, 10, 9, 3, 14, 5, 0, 12, 7,
                                             1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 0, 14, 9, 2,
                                             7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8,
-                                            2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11} 
-                                          };
+                                            2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11}
+                                   };
 
-    static constexpr size_t LSCount[] = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1 };
+    vector<size_t> LSCount;
 
 };
 
@@ -270,17 +277,36 @@ void decrypt(ofstream& fout) {
     fin.close();
 }
 
+void KeySearch() {
+    unsigned long long key = 0x0000000000000000, plain = 0x5365637572697479;
+    for (; key <= 0x000000000000FFFF; key++) {
+        if (0x9BA99BA3540353BB == DES(key).Encrypt(plain).to_ullong()) {
+            cout << setfill('0') << setw(16) << hex << key << endl;
+            break;
+        }
+    }
+}
+
+void fnMDES() {
+    unsigned long long key = 0xA30000F500CE0098, plain = 0x5365637572697479;
+    cout << setfill('0') << setw(16) << hex << DES(key, true).Encrypt(plain).to_ullong() << endl;
+    cout << setfill('0') << setw(16) << hex << DES(0x0F0F0F0F0F0F0F0F, true).Decrypt(0x0).to_ullong() << endl;
+}
+
 #ifndef NO_MAIN
 
 int main() {
 
-    ofstream fout("out.txt");
+    //ofstream fout("out.txt");
 
-    auto cpu_time_used = measure<>::execution(encrypt, fout)
-                       + measure<>::execution(decrypt, fout);
+    //auto cpu_time_used = measure<>::execution(encrypt, fout)
+    //                   + measure<>::execution(decrypt, fout);
+    auto cpu_time_used = measure<>::execution(KeySearch);
 
-    fout << dec << cpu_time_used / 1e6 / 20.0 << " ms";
-    fout.close();
+    fnMDES();
+    cout << dec << cpu_time_used / 1e6 << " ms";
+    //fout << dec << cpu_time_used / 1e6 / 20.0 << " ms";
+    //fout.close();
     return 0;
 }
 
